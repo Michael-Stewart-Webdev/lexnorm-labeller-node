@@ -37,6 +37,8 @@ router.get('/get_dataset', function(req, res, next) {
 
 		// Read the input datasets and create a sorted list of them (minus the _5170.json part).
 		inputDatasets = fs.readdirSync('data/input_data');
+		inputDatasets.splice(inputDatasets.indexOf(".gitignore"), 1);
+		console.log(inputDatasets);
 		inputDatasetShortnames = [];
 		for(var i in inputDatasets) {
 			inputDatasetShortnames[i] = inputDatasets[i].replace(/_\d+.json/, '');
@@ -45,7 +47,7 @@ router.get('/get_dataset', function(req, res, next) {
 
 		// Read the list of folders that have been created to store the outputs so far.
 		outputDatasetFolders = fs.readdirSync('data/output_data');
-		outputDatasetFolders.sort(datasetSort).reverse();
+		outputDatasetFolders.splice(outputDatasetFolders.indexOf(".gitignore"), 1).sort(datasetSort).reverse();
 
 		console.log(outputDatasetFolders.length)
 		// Determine the latest folder.
