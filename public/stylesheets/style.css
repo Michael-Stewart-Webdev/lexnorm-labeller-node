@@ -1,0 +1,158 @@
+body, input, button {
+	font-family: 'Open Sans', sans-serif;
+}
+html {
+	padding: 0;
+}
+body {
+	background: #333;
+	padding: 0;
+	padding-top: 50px;
+	margin: 0;
+	background: url('/images/skewed_print.png');
+}
+table {
+	border-collapse: collapse;
+	color: #222;
+	font-size: 22px;
+}
+tbody.loading {	
+	pointer-events: none;
+}
+tbody.loading tr td {
+	opacity: 0.2;
+}
+tbody.initial-loading tr td {
+	padding-top: 60px;
+	padding-bottom: 60px;
+}
+tbody.initial-loading tr td:first-child {
+	padding-right: 70px;
+}
+tr.completed-row {
+	color: rgba(0, 0, 0, 0.3);
+}
+
+td {				
+	padding: 25px 50px;
+	line-height: 150%;
+}
+td:first-child {
+	width: 5%;
+	text-align: center;
+	background: #e7e7e7;
+}
+tr:nth-child(odd) td:first-child {
+	background: #eee;
+}
+td:last-child {
+	width: 95%;
+}
+tr:nth-child(odd) {
+	background: white;
+}
+tr:nth-child(even) {
+	background: #f3f3f3;
+}
+span.word {
+	display: inline-block;
+	padding: 0 4px;
+	margin-bottom: 4px;
+	box-sizing: border-box;
+	cursor: text;
+}
+span.word:focus {
+	outline: none;
+}
+
+span.word.error {
+	background: #FFCCCC;
+	outline: 1px solid #dda4a4;
+}
+
+span.word.corrected {
+	background: #CCFFCC;
+	outline: 1px  solid #a9e8a9;
+}
+
+span.word.working, span.word:focus {
+	background: #FFFF99;
+	outline: 1px  solid #e0e070;
+}
+
+form {
+	padding: 0;
+	margin: 0;
+	margin-top: 60px;
+	margin-bottom: 80px;
+}
+form .container {
+	max-width: 100%;
+	width: 1280px;
+	margin: 0 auto;
+	display: block;
+	box-shadow: 1px 1px 5px -3px #222;
+}
+::-webkit-input-placeholder {
+	color: #222;
+}
+
+nav {
+	z-index: 100000;
+	background: #222;
+	height: 40px;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+}
+nav .container {
+	width: 1280px;
+	max-width: 100%;
+	color: white;
+	margin: 0 auto;
+	font-size: 20px;
+	padding-top: 6px;
+}
+#form-submission {
+	background: #333;
+	padding: 10px 0;
+	margin-top: 10px;
+	margin-bottom: 0px;
+	padding-bottom: 150px;
+	box-shadow: 0 -1px 5px -3px #222;
+}
+button#submit {
+	border: 2px solid #ddd;
+	color: #ddd;
+	margin: 0 auto;
+	display: block;
+	cursor: pointer;
+	font-size: 30px;
+	padding: 25px 80px;
+	outline: none;
+	margin-top: 60px;
+	background: none;
+	text-transform: uppercase;
+
+}
+button#submit:hover {
+	background: rgba(255, 255, 255, 0.2);
+}
+button#submit:active {
+	margin-top: 62px;
+}
+#output-container {
+	background: white;
+	padding-top: 30px;
+	padding-bottom: 30px;
+	margin-top: -10px;
+}
+#output-container .container {
+	width: 1280px;
+	margin: 0 auto;
+}
+code {
+	font-family: "Courier New", serif;
+	display: block;
+}

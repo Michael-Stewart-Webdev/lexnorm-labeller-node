@@ -1,0 +1,177 @@
+extends layout
+
+block content
+	nav
+		div.container
+			div#completion-counter Completed <span id="completion-sofar">0</span>/<span id="completion-total">0</span></div>
+
+	form#form
+		div.container
+			table#form-table
+				tbody#form-table-tbody.initial-loading
+					tr
+						td &nbsp;
+						td &nbsp;
+					tr
+						td &nbsp;
+						td &nbsp;
+					tr
+						td &nbsp;
+						td &nbsp;
+					tr
+						td &nbsp;
+						td &nbsp;
+					tr
+						td &nbsp;
+						td &nbsp;
+					tr
+						td &nbsp;
+						td &nbsp;
+
+	div#form-submission
+		div.container
+			button#submit Submit
+
+block scripts
+	//script(type="text/javascript" src="../data/input_data/" + data_file)
+	script.
+
+		$(window).ready(function() {
+
+			$tableBody = $("#form-table-tbody");
+			$completionSoFar = $("#completion-sofar");
+			$completionTotal = $("#completion-total");
+
+			function requestDataset(next) {
+				$tableBody.addClass("loading");
+				$.ajax ({
+					url: "/get_dataset",
+					success: function(data) {
+						$tableBody.html('');
+						$tableBody.removeClass("loading");
+						$tableBody.removeClass("initial-loading");
+						next(data);
+					},
+					error: function(data) {
+						alert("Error loading data.");
+					}
+				});				
+			}
+
+
+			
+			$('body').on('focus', '[contenteditable]', function() {
+			    const $this = $(this);
+			    $this.data('before', $this.html());
+			}).on('blur keyup paste input', '[contenteditable]', function() {
+			    const $this = $(this);
+			    if ($this.data('before') !== $this.html()) {
+			        $this.data('before', $this.html());
+			        $this.trigger('change');
+			    }
+			});
+
+			function renderTable(data) {
+
+				dataset = data.data;
+				latestIndex = data.latestIndex;
+				datasetLength = data.datasetLength;
+				outputFilename = data.outputFilename;
+
+				$completionSoFar.html(latestIndex);
+				$completionTotal.html(datasetLength);
+
+
+
+				// Generate table
+				count = 0;
+				for(var i = 0; i < 20; i++) { //data.length; i++) {
+					console.log("hi");
+					doc_inp = dataset[i]["input"]
+					doc_outp = dataset[i]["output"]
+
+					doc_arr = [];
+					for(j in doc_inp) {
+						if(doc_outp[j].length > 0) {
+							doc_arr.push("<span class=\"word\" contenteditable spellcheck=\"false\">" + doc_outp[j] + "</span>");
+						} else {
+							doc_arr.push("<span class=\"word error\" contenteditable spellcheck=\"false\">" + doc_inp[j] + "</span>");
+						}
+					}
+					doc_str = doc_arr.join(" ");		
+
+					$tableBody.append("<tr data-row-id=\"" + (parseInt(dataset[i]["idx"])) + "\"><td>" + (parseInt(dataset[i]["idx"])) + "</td><td>" + doc_str + "</td></tr>")
+				}
+
+
+
+
+
+				$currentSelectedWord = null;
+
+				$("span.word").on('focusout', function() {
+					if($currentSelectedWord) {
+						if($currentSelectedWord.hasClass("error")) {
+							$currentSelectedWord.addClass("corrected");
+						}
+						$currentSelectedWord.removeClass("working");			
+					}
+				})
+
+				$("span.word").on('click', function() {
+
+					$currentSelectedWord = $(this);
+					$(this).addClass("working");
+				})
+
+
+				$("span.word").on('change', function() {
+					$(this).addClass("corrected");
+				})
+
+				trs = $("tr");
+				words = $("span.word");
+
+				$("#submit").click(function() {
+					var output_data = [];
+					trs.each(function() {
+
+						row_data = [];
+						$(this).find("span.word").each(function() {
+							row_data.push($(this).html());
+						});
+						output_data.push(row_data);
+					});
+
+					for(var i = 0; i < dataset.length; i++) {
+						dataset[i]["output"] = output_data[i];
+					}
+					$.ajax({
+						url: '/submit_dataset',
+						method: 'post',
+						data: { dataset: dataset, outputFilename: outputFilename },
+						success: function(data) {
+							console.log("Success!");			
+							$(window).scrollTop(0);				
+							requestDataset( function(data) {
+								renderTable(data);
+							});
+						},
+						error: function() {
+							alert("Error uploading data.");
+						}
+
+
+					})
+				});
+
+			}
+
+			requestDataset( function(data) {
+				renderTable(data);
+			});
+
+		});
+
+
+	
