@@ -10,10 +10,36 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/submit_dataset', function(req, res, next) {
-	var dataset = JSON.stringify(req.body.dataset);
-	var outputFilename = req.body.outputFilename;
+
+	if(req.body.rejectedDataset === undefined) {
+		req.body.rejectedDataset = [];
+	}
+	if(req.body.dataset === undefined) {
+		req.body.dataset = [];
+	}
+
+	var dataset = JSON.stringify(req.body.dataset);	
+	var rejectedDataset = JSON.stringify(req.body.rejectedDataset || {}) ;
+	var outputFilename = req.body.outputFilename;	
+	var rejectedFilename = req.body.rejectedFilename;
+
+
+	var replacementDictionary = req.body.replacementDictionary;
+
+	var trimmedOutputFilename = outputFilename.match(/\d+_to_\d+/g)[0];
+
+	fs.writeFileSync('data/replacement_dictionary/replacement_dictionary.json', JSON.stringify(replacementDictionary, null, 4));
+	fs.writeFileSync('data/replacement_dictionary/replacement_dictionary_' + trimmedOutputFilename + ".json", JSON.stringify(replacementDictionary, null, 4));
+
+
+	outputFilename = outputFilename.slice(0, outputFilename.indexOf(".json")) + "_" + req.body.dataset.length + ".json";
+	rejectedFilename = rejectedFilename.slice(0, rejectedFilename.indexOf(".json")) + "_" + req.body.rejectedDataset.length + ".json";
 
 	fs.writeFileSync(outputFilename, dataset);
+	fs.writeFileSync(rejectedFilename, rejectedDataset);
+
+	// TODO: Check if that was the last subset of the dataset and create 
+	// a new output folder if it was.
 
 	res.send({"success": true})
 
@@ -38,7 +64,6 @@ router.get('/get_dataset', function(req, res, next) {
 		// Read the input datasets and create a sorted list of them (minus the _5170.json part).
 		inputDatasets = fs.readdirSync('data/input_data');
 		inputDatasets.splice(inputDatasets.indexOf(".gitignore"), 1);
-		console.log(inputDatasets);
 		inputDatasetShortnames = [];
 		for(var i in inputDatasets) {
 			inputDatasetShortnames[i] = inputDatasets[i].replace(/_\d+.json/, '');
@@ -49,21 +74,23 @@ router.get('/get_dataset', function(req, res, next) {
 		outputDatasetFolders = fs.readdirSync('data/output_data');
 		outputDatasetFolders.splice(outputDatasetFolders.indexOf(".gitignore"), 1).sort(datasetSort).reverse();
 
-		console.log(outputDatasetFolders.length)
 		// Determine the latest folder.
 		if(outputDatasetFolders.length == 0) {
 			latestFolder = inputDatasetShortnames[0];
 			fs.mkdirSync('data/output_data/' + latestFolder) // TODO: Create new empty folder when done with dataset
+			fs.mkdirSync('data/output_data/' + latestFolder + '/rejected_documents')
 		} else {
 			latestFolder = outputDatasetFolders[0];
 		}
 		
 		// Determine the index to start from by looking in the latest folder and finding the latest output dataset.
 		outputDatasetFiles = fs.readdirSync('data/output_data/' + latestFolder);
+		outputDatasetFiles.pop("rejected_documents");
 		if(outputDatasetFiles.length == 0) {
 			latestIndex = 0;
 		} else {
 			outputDatasetFiles.sort(outputDatasetSort).reverse();
+			outputDatasetFiles[0] = outputDatasetFiles[0].replace(/_\d+\.json/g, '.json');
 			latestIndex = parseInt(outputDatasetFiles[0].match(/_\d+\.json/g)[0].replace(/_/g, '').replace(/\.json/g, ''));			
 		}
 
@@ -84,21 +111,28 @@ router.get('/get_dataset', function(req, res, next) {
 		}
 
 		outputFilename = "data/output_data/" + latestFolder + "/" + (latestIndex + 1) + "_to_" + (latestIndex + DOCS_PER_VIEW) + ".json";
+		rejectedFilename = "data/output_data/" + latestFolder + "/rejected_documents/" + (latestIndex + 1) + "_to_" + (latestIndex + DOCS_PER_VIEW) + ".json";
 
-		return [slicedDataset, latestIndex / DOCS_PER_VIEW, loadedDataset.length / DOCS_PER_VIEW, outputFilename ];
+
+		replacementDictionary = {};
+		return [slicedDataset, relevantInputDataset, latestIndex / DOCS_PER_VIEW, Math.ceil(loadedDataset.length / DOCS_PER_VIEW), outputFilename, rejectedFilename, replacementDictionary ];
 	}
 
 	function getDatasetStartIndex() {
 
 	}
 
-	try {
-		var data = getCurrentDataset()
-	} catch(err) { console.log(err) }
+	function getReplacementDictionary() {
+		try { return JSON.parse(fs.readFileSync('data/replacement_dictionary/replacement_dictionary.json', 'utf-8')); }
+		catch(err) { console.log(err) }
+	}
+
+	try { var data = getCurrentDataset() }
+	catch(err) { console.log(err) }
 
 	//var data = JSON.parse(fs.readFileSync('data/input_data/data_1_5720.json', 'utf8'));
 
-	res.send({ data: data[0], latestIndex: data[1], datasetLength: data[2], outputFilename: data[3] })
+	res.send({ data: data[0], datasetName: data[1], latestIndex: data[2], datasetLength: data[3], outputFilename: data[4], rejectedFilename: data[5] , replacementDictionary: getReplacementDictionary() })
 });
 
 

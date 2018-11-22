@@ -3,6 +3,7 @@ extends layout
 block content
 	nav
 		div.container
+			div#dataset-name
 			div#completion-counter Completed <span id="completion-sofar">0</span>/<span id="completion-total">0</span></div>
 
 	form#form
@@ -31,16 +32,44 @@ block content
 	div#form-submission
 		div.container
 			button#submit Submit
+	div#dictionary-button-container
+		div#dictionary-button.add-to-dictionary(title="" contenteditable="false")
+			div.button-content
+				| <span class="add-to">Add to</span><span class="remove-from">Remove from</span> dictionary
+			div.dictionary-info
+				| (<span class="before">ee</span> -&gt; <span class="after">employee</span>)
 
 block scripts
 	//script(type="text/javascript" src="../data/input_data/" + data_file)
 	script.
-
+		//- var replacementDictionary = {
+		//- 					"ee": "employee",
+		//- 					"ee's": "employee's",
+		//- 					"&": "and",
+		//- 					"dr": "doctor",
+		//- 					"dr.": "doctor",
+		//- 					"a/c": "air conditioner",
+		//- 					"metarsal": "metatarsal",
+		//- 					"e.r": "emergency room",
+		//- 					"binded": "bound",
+		//- 					"begining": "beginning",
+		//- 					"lta": "lost time accident",
+		//- 					"occured": "occurred",
+		//- 					"mmu": "mobile mixing unit",
+		//- 					"ft.": "ft",
+		//- 					"lb.": "lb",
+		//- 				}
 		$(window).ready(function() {
 
+			$datasetName = $("#dataset-name")
 			$tableBody = $("#form-table-tbody");
 			$completionSoFar = $("#completion-sofar");
 			$completionTotal = $("#completion-total");
+			$dictionaryButton = $("#dictionary-button");
+
+			$dictionaryButtonBefore = $("#dictionary-button .before");
+			$dictionaryButtonAfter = $("#dictionary-button .after");
+			$dictionaryButtonContainer = $("#dictionary-button-container")
 
 			function requestDataset(next) {
 				$tableBody.addClass("loading");
@@ -49,7 +78,8 @@ block scripts
 					success: function(data) {
 						$tableBody.html('');
 						$tableBody.removeClass("loading");
-						$tableBody.removeClass("initial-loading");
+						$tableBody.removeClass("initial-loading");	
+						$datasetName.html("Annotating " + data.datasetName);					
 						next(data);
 					},
 					error: function(data) {
@@ -77,30 +107,63 @@ block scripts
 				latestIndex = data.latestIndex;
 				datasetLength = data.datasetLength;
 				outputFilename = data.outputFilename;
+				rejectedFilename = data.rejectedFilename;
+
+				replacementDictionary = data.replacementDictionary;
 
 				$completionSoFar.html(latestIndex);
 				$completionTotal.html(datasetLength);
 
 
+				//var DSTs = new Set(["ramcar", "mri", "pry-bar", "kayenta", "c-clamp", "spad", "ft", "lb"])
+
+				
+				console.log(replacementDictionary)
 
 				// Generate table
 				count = 0;
 				for(var i = 0; i < 20; i++) { //data.length; i++) {
 					console.log("hi");
-					doc_inp = dataset[i]["input"]
-					doc_outp = dataset[i]["output"]
+					doc_inp = dataset[i]["input"];
+					doc_outp = dataset[i]["output"];
+
+
 
 					doc_arr = [];
-					for(j in doc_inp) {
+					for(var j = 0; j < doc_inp.length; j++) {
+						modified = false;
+						//- if(DSTs.has(doc_inp[j])) {
+						//- 	doc_outp[j] = doc_inp[j];
+						//- 	modified = true;
+						//- }
+						if(replacementDictionary.hasOwnProperty(doc_inp[j])) {
+							doc_outp[j] = replacementDictionary[doc_inp[j]];
+							modified = true;
+						}
+						if(doc_inp[j] == "ee") modified = false; // Kind of annoying having so many blue boxes
+
 						if(doc_outp[j].length > 0) {
-							doc_arr.push("<span class=\"word\" contenteditable spellcheck=\"false\">" + doc_outp[j] + "</span>");
+							// Automatically join a correct word and 's together
+							//- if(j < doc_inp.length - 1 && doc_inp[j + 1] == "'s") {
+							//- 	doc_arr.push("<span title=\"Original: " + doc_inp[j] + "\" class=\"word error\" contenteditable spellcheck=\"false\">" + doc_inp[j] + doc_inp[j + 1] + "</span>");
+							//- 	doc_arr.push("<span title=\"Original: " + doc_inp[j + 1] + "\" class=\"word error\" contenteditable spellcheck=\"false\">" + "" + "</span>");
+							//- 	j++;
+							//- }
+							doc_arr.push("<span title=\"Original: " + doc_inp[j] + "\" class=\"word" + (modified ? " modified" : "") + "\" contenteditable spellcheck=\"false\" data-original=\"" + doc_inp[j] + "\">" + doc_outp[j] + "</span>");
 						} else {
-							doc_arr.push("<span class=\"word error\" contenteditable spellcheck=\"false\">" + doc_inp[j] + "</span>");
+							// Automatically join two error words next to each other.
+							//- if(j < doc_inp.length - 1 && doc_outp[j + 1].length == 0) {
+							//- 	doc_arr.push("<span title=\"Original: " + doc_inp[j] + "\" class=\"word error\" contenteditable spellcheck=\"false\">" + doc_inp[j] + doc_inp[j + 1] + "</span>");
+							//- 	doc_arr.push("<span title=\"Original: " + doc_inp[j + 1] + "\" class=\"word error\" contenteditable spellcheck=\"false\">" + "" + "</span>");
+							//- 	j++;
+							//- } else {
+								doc_arr.push("<span title=\"Original: " + doc_inp[j] + "\" class=\"word error\" contenteditable spellcheck=\"false\" data-original=\"" + doc_inp[j] + "\">" + doc_inp[j] + "</span>");
+							//- }
 						}
 					}
 					doc_str = doc_arr.join(" ");		
 
-					$tableBody.append("<tr data-row-id=\"" + (parseInt(dataset[i]["idx"])) + "\"><td>" + (parseInt(dataset[i]["idx"])) + "</td><td>" + doc_str + "</td></tr>")
+					$tableBody.append("<tr data-row-id=\"" + (parseInt(dataset[i]["idx"])) + "\"><td class=\"hover-delete\">" + (parseInt(dataset[i]["idx"])) + "</td><td>" + doc_str + "</td></tr>")
 				}
 
 
@@ -109,47 +172,140 @@ block scripts
 
 				$currentSelectedWord = null;
 
+				$("td.hover-delete").on('click', function() {
+					//var rowId = $(this).parent().attr('data-row-id');
+					var par = $(this).parent();
+					var spans = par.find("td span.word")
+					if(par.hasClass("deleted-row")) {
+						spans.attr('contenteditable', 'true');
+					} else {
+						spans.attr('contenteditable', 'false');
+					}
+					par.toggleClass("deleted-row");					
+					
+				});
+
 				$("span.word").on('focusout', function() {
+
 					if($currentSelectedWord) {
-						if($currentSelectedWord.hasClass("error")) {
+						if($currentSelectedWord.hasClass("error") || $currentSelectedWord.hasClass("modified")) {
 							$currentSelectedWord.addClass("corrected");
 						}
-						$currentSelectedWord.removeClass("working");			
+						$currentSelectedWord.removeClass("working");
+						$currentSelectedWord.removeClass("modified");		
 					}
 				})
 
-				$("span.word").on('click', function() {
+				//https://stackoverflow.com/questions/3442394/using-text-to-retrieve-only-text-not-nested-in-child-tags
+				function getTextOnly(node) {
+					return node
+				    .clone()    //clone the element
+				    .children() //select all the children
+				    .remove()   //remove all the children
+				    .end()  //again go back to selected element
+				    .text();
+				}
 
+				function resetDictionaryButton(originalText, currentText) {
+					$dictionaryButton.removeClass("remove-from-dictionary");
+					$dictionaryButton.addClass("add-to-dictionary");
+					$dictionaryButton.unbind('click');
+					$dictionaryButton.on('click', function() {
+						replacementDictionary[originalText] = currentText;
+						dictionaryButtonBlue(originalText, currentText);
+					})					
+				}
+
+				function dictionaryButtonBlue(originalText, currentText) {
+					$dictionaryButton.addClass("remove-from-dictionary");
+					$dictionaryButton.removeClass("add-to-dictionary");
+
+					$dictionaryButtonBefore.text(originalText);
+					$dictionaryButtonAfter.text(replacementDictionary[originalText]);
+
+					$dictionaryButton.unbind('click');
+					$dictionaryButton.on('click', function() {
+						delete replacementDictionary[originalText];
+						resetDictionaryButton(originalText, currentText);
+					})
+				}
+
+				function dictionaryEventHandler(ele) {
+					var originalText = ele.attr('data-original');
+					var currentText = getTextOnly(ele);
+					//if(ele.hasClass("modified") || ele.hasClass("error") || ele.hasClass("corrected") || originalText != currentText) {
+					if(originalText != currentText || ele.hasClass("error") || ele.hasClass("corrected") || replacementDictionary.hasOwnProperty(originalText)) {
+						if(replacementDictionary.hasOwnProperty(originalText)) {
+							dictionaryButtonBlue(originalText, currentText);
+						} else {
+							resetDictionaryButton(originalText, currentText);		
+						}
+						$dictionaryButton.appendTo(ele);
+
+					} else {
+						$dictionaryButton.appendTo($dictionaryButtonContainer);
+					}
+				}
+
+				$("span.word").on('click', function() {
 					$currentSelectedWord = $(this);
+
+					
+
+					dictionaryEventHandler($(this));
+
+					
+
 					$(this).addClass("working");
 				})
 
 
-				$("span.word").on('change', function() {
+				$("span.word").on('change', function() {	
+					dictionaryEventHandler($(this));			
 					$(this).addClass("corrected");
 				})
 
 				trs = $("tr");
 				words = $("span.word");
 
+				$("#submit").unbind('click');
 				$("#submit").click(function() {
+					$dictionaryButton.appendTo($dictionaryButtonContainer);
 					var output_data = [];
+					var deleted_rows = [];
+					var rejectedDataset = [];
 					trs.each(function() {
 
 						row_data = [];
 						$(this).find("span.word").each(function() {
 							row_data.push($(this).html());
 						});
-						output_data.push(row_data);
+						if ($(this).hasClass("deleted-row")) {
+							deleted_rows.push(row_data);
+							output_data.push("(deleted)");
+						} else {
+							output_data.push(row_data);
+						}						
 					});
 
 					for(var i = 0; i < dataset.length; i++) {
-						dataset[i]["output"] = output_data[i];
+						if(output_data[i] == "(deleted)") {
+							rejectedDataset.push(dataset[i]);
+							rejectedDataset[rejectedDataset.length - 1]["output"] = deleted_rows[i];
+							delete dataset[i];
+						} else {
+							dataset[i]["output"] = output_data[i];
+						}
 					}
+					var finalDataset = [];
+					for(var i = 0; i < dataset.length; i++) {
+						if(dataset[i]) finalDataset.push(dataset[i]);
+					}
+					console.log(dataset)
 					$.ajax({
 						url: '/submit_dataset',
 						method: 'post',
-						data: { dataset: dataset, outputFilename: outputFilename },
+						data: { dataset: finalDataset, rejectedDataset: rejectedDataset, outputFilename: outputFilename, rejectedFilename: rejectedFilename, replacementDictionary: replacementDictionary },
 						success: function(data) {
 							console.log("Success!");			
 							$(window).scrollTop(0);				
