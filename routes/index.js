@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 var fs = require('fs');
 
-var DOCS_PER_VIEW = 20;
+var DOCS_PER_VIEW = 10;
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -62,7 +62,7 @@ router.get('/get_dataset', function(req, res, next) {
 		}
 
 		// Read the input datasets and create a sorted list of them (minus the _5170.json part).
-		inputDatasets = fs.readdirSync('data/input_data');
+		inputDatasets = fs.readdirSync('data/intermediate_data');
 		inputDatasets.splice(inputDatasets.indexOf(".gitignore"), 1);
 		inputDatasetShortnames = [];
 		for(var i in inputDatasets) {
@@ -102,7 +102,7 @@ router.get('/get_dataset', function(req, res, next) {
 				relevantInputDataset = inputDatasets[i];
 			}
 		}
-		loadedDataset = JSON.parse(fs.readFileSync('data/input_data/' + relevantInputDataset));
+		loadedDataset = JSON.parse(fs.readFileSync('data/intermediate_data/' + relevantInputDataset));
 
 		slicedDataset = loadedDataset.slice(latestIndex, latestIndex + DOCS_PER_VIEW);
 
@@ -130,7 +130,7 @@ router.get('/get_dataset', function(req, res, next) {
 	try { var data = getCurrentDataset() }
 	catch(err) { console.log(err) }
 
-	//var data = JSON.parse(fs.readFileSync('data/input_data/data_1_5720.json', 'utf8'));
+	//var data = JSON.parse(fs.readFileSync('data/intermediate_data/data_1_5720.json', 'utf8'));
 
 	res.send({ data: data[0], datasetName: data[1], latestIndex: data[2], datasetLength: data[3], outputFilename: data[4], rejectedFilename: data[5] , replacementDictionary: getReplacementDictionary() })
 });
